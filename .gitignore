@@ -1,0 +1,82 @@
+# ==============================================================================
+# DEPENDENCIES & PACKAGE MANAGERS
+# ==============================================================================
+/vendor/
+/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# ==============================================================================
+# ENVIRONMENT & SECRETS (SANGAT KETAT UNTUK KEAMANAN PUBLIKASI)
+# ==============================================================================
+.env
+.env.*
+!.env.example
+.phpunit.result.cache
+
+# Kredensial & Kunci API Google / OAuth / Service Account
+credentials.json
+token.json
+client_secret*.json
+google-service-account*.json
+service-account*.json
+storage/*.json
+config/*.json
+*.pem
+*.key
+*.p12
+
+# ==============================================================================
+# STORAGE & RUNTIME CACHES
+# ==============================================================================
+/storage/app/public/*
+!/storage/app/public/.gitkeep
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/testing/*
+!/storage/framework/testing/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+
+# Symlink Asset Publik (Foto Laporan Pegawai & Dokumen)
+/public/storage
+/public/reports_assets/
+/public/hot
+
+# ==============================================================================
+# DATABASE DUMPS & ARSIP FILE
+# ==============================================================================
+*.sql
+*.sqlite
+*.sqlite-journal
+*.db
+*.zip
+*.rar
+*.7z
+*.tar.gz
+*.bak
+
+# ==============================================================================
+# CATATAN DRAF PRIBADI (INTERNAL PENYUSUNAN LAPORAN)
+# ==============================================================================
+BAHAN_LAPORAN.md
+BAHAN_DIAGRAM.md
+
+# ==============================================================================
+# IDE, SYSTEM & BUILD ARTIFACTS
+# ==============================================================================
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
