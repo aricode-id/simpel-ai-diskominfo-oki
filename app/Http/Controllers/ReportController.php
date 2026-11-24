@@ -748,8 +748,11 @@ class ReportController extends Controller
 
     private function doGenerate(Request $request) 
     {
-        // Inisialisasi awal variabel nama_file untuk mencegah bug Undefined variable $nama_file
+        // Inisialisasi awal variabel nama_file & judul_db untuk mencegah bug Undefined variable
         $nama_file = null;
+        $judul_db = trim($request->input('judul', '')) !== '' 
+            ? trim($request->input('judul')) 
+            : (!empty($request->jenis_dokumen) ? ($request->jenis_dokumen . ' Kedinasan') : 'Laporan Kegiatan Kedinasan');
 
         $action = $request->input('action', 'draft'); 
         $jenis = $request->jenis_dokumen;
@@ -909,6 +912,13 @@ class ReportController extends Controller
         $namaUserLengkap = $authorUser->name ?? 'Pegawai';
         $namaDepan = strtolower(explode(' ', $namaUserLengkap)[0]);
 
+        // Default dinamis untuk judul_db setelah bidang_teks terdefinisi
+        if (empty(trim($judul_db ?? '')) || $judul_db === 'Laporan Kegiatan Kedinasan' || $judul_db === ($jenis . ' Kedinasan')) {
+            $judul_db = !empty(trim($request->input('judul', ''))) 
+                ? trim($request->input('judul')) 
+                : (!empty($jenis) ? "{$jenis} {$bidang_teks}" : "Laporan Kegiatan {$bidang_teks}");
+        }
+
         // Tentukan tanggal utama dokumen
         $tanggalDokumen = $request->tanggal
             ?? ($formData['kegiatan'][0]['tanggal'] ?? null)
@@ -1012,7 +1022,9 @@ class ReportController extends Controller
                 $rentang = $this->getFormattedDateForFilename(date('Y-m-d'));
             }
             $nama_file = "laporan_mingguan_{$rentang}_" . rand(10000000, 99999999) . ".docx";
-            $judul_db = "Rekap Mingguan " . $bidang_teks;
+            $judul_db = !empty(trim($request->input('judul', ''))) 
+                ? trim($request->input('judul')) 
+                : ("Rekap Mingguan " . $bidang_teks);
 
         // ====================================================================
         // CABANG 2: LAPORAN HARIAN (INDIVIDU / E-KINERJA)
@@ -1115,13 +1127,20 @@ class ReportController extends Controller
             if (empty($itemsRender)) {
                 $fallbackTgl = $this->getFormattedDateForFilename($tanggalDokumen);
                 $nama_file = "laporan_harian_{$fallbackTgl}_" . rand(1000, 9999) . ".docx";
-                $judul_db = "Laporan Harian " . $bidang_teks;
+                $judul_db = !empty(trim($request->input('judul', ''))) 
+                    ? trim($request->input('judul')) 
+                    : ("Laporan Harian " . $bidang_teks);
                 $section->addText("Belum ada data kegiatan yang diisi.", ['italic' => true, 'color' => '999999']);
             } else {
                 $this->buildWordHarian($section, $phpWord, $itemsRender, $allPhotosHarian, $bidang_teks, $tglUtamaArr, $authorUser, $request);
 
                 $nama_file = "Lap_harian_{$namaDepan}_{$tglFileCustom}_" . rand(1000, 9999) . ".docx";
-                $judulUtama = $itemsRender[0]['judul'] ?? 'Laporan Harian';
+                $judulUtama = trim($itemsRender[0]['judul'] ?? '');
+                if (empty($judulUtama)) {
+                    $judulUtama = !empty(trim($request->input('judul', ''))) 
+                        ? trim($request->input('judul')) 
+                        : ("Laporan Harian " . $bidang_teks);
+                }
                 if (count($itemsRender) > 1) {
                     $judul_db = $judulUtama . " (+" . (count($itemsRender) - 1) . " Kegiatan Lainnya)";
                 } else {
@@ -1196,7 +1215,13 @@ class ReportController extends Controller
                 
                 $tglFile = $this->getFormattedDateForFilename($request->notulen_tanggal ?? date('Y-m-d'));
                 $nama_file = "notulensi_rapat_{$tglFile}_" . rand(10000000, 99999999) . ".docx";
-                $judul_db = $formData['notulen_judul'] ?? 'Notulensi Rapat';
+                $judul_db = !empty(trim($formData['notulen_judul'] ?? '')) 
+                    ? trim($formData['notulen_judul']) 
+                    : (!empty(trim($request->notulen_judul ?? '')) 
+                        ? trim($request->notulen_judul) 
+                        : (!empty(trim($request->input('judul', ''))) 
+                            ? trim($request->input('judul')) 
+                            : 'Notulensi Rapat'));
                 
             } elseif ($jenis === 'Laporan Perjalanan Dinas') {
                 $tgl_arr = $this->formatTanggal($request->sppd_tanggal ?? date('Y-m-d'));
@@ -1281,7 +1306,19 @@ class ReportController extends Controller
                 
                 $tglFile = $this->getFormattedDateForFilename($request->sppd_tanggal ?? date('Y-m-d'));
                 $nama_file = "laporan_perjalanan_dinas_{$tglFile}_" . rand(10000000, 99999999) . ".docx";
-                $judul_db = "Perjalanan Dinas: " . ($request->sppd_tujuan ?? 'Tanpa Tujuan');
+                $tujuanSppd = trim($request->sppd_tujuan ?? '');
+                $judul_db = !empty($tujuanSppd) 
+                    ? ("Perjalanan Dinas: " . $tujuanSppd) 
+                    : (!empty(trim($request->input('judul', ''))) 
+                        ? trim($request->input('judul')) 
+                        : "Laporan Perjalanan Dinas {$bidang_teks}");
+            } else {
+                $tglFile = $this->getFormattedDateForFilename($tanggalDokumen);
+                $nama_file = "dokumen_{$tglFile}_" . rand(10000000, 99999999) . ".docx";
+                $judul_db = !empty(trim($request->input('judul', ''))) 
+                    ? trim($request->input('judul')) 
+                    : (!empty($jenis) ? ($jenis . ' ' . $bidang_teks) : ('Laporan Kegiatan ' . $bidang_teks));
+                $section->addText("Format dokumen kedinasan: " . ($jenis ?: 'Umum'), ['bold' => true]);
             }
         }
 
@@ -1289,6 +1326,13 @@ class ReportController extends Controller
         if (empty($nama_file)) {
             $fallbackTgl = $this->getFormattedDateForFilename($tanggalDokumen);
             $nama_file = "dokumen_{$fallbackTgl}_" . rand(10000000, 99999999) . ".docx";
+        }
+
+        // Pastikan judul_db selalu terdefinisi dan tidak pernah null atau kosong
+        if (empty(trim($judul_db ?? ''))) {
+            $judul_db = !empty(trim($request->input('judul', ''))) 
+                ? trim($request->input('judul')) 
+                : (!empty($jenis) ? ($jenis . ' - ' . $bidang_teks) : ('Laporan Kegiatan ' . $bidang_teks));
         }
 
         // ====================================================================
