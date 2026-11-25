@@ -292,7 +292,7 @@
         </div>
 
         <!-- Body Modal (Scrollable Preview Paper) -->
-        <div id="previewModalContent" style="flex: 1 1 auto; overflow-y: auto; padding: 24px; background-color: #1e293b;">
+        <div id="previewModalContent" class="h-[55vh] min-h-[420px] overflow-auto" style="flex: 1 1 auto; overflow-y: auto; padding: 24px; background-color: #1e293b;">
             <!-- Konten pratinjau dimasukkan via AJAX -->
         </div>
 

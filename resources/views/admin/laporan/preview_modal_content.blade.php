@@ -65,7 +65,7 @@
 @endphp
 
 <!-- Lembar Kertas Dokumen Word A4 -->
-<div class="bg-white text-slate-800 p-6 md:p-12 shadow-2xl rounded-sm border border-slate-300 max-w-3xl mx-auto font-sans leading-relaxed text-sm select-text">
+<div class="bg-white text-slate-800 p-6 md:p-12 shadow-2xl rounded-sm border border-slate-300 max-w-3xl mx-auto font-sans leading-relaxed text-sm select-text h-[55vh] min-h-[420px] overflow-auto">
 
     {{-- KOP SURAT RESMI OKI (Tidak tampil pada Laporan Harian) --}}
     @if(($formData['pakai_kop'] ?? 'tidak') === 'ya' && $report->jenis_dokumen !== 'Laporan Harian')

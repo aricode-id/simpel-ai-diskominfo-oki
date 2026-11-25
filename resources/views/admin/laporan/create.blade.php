@@ -309,12 +309,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div class="bg-sub-card p-4 border-dashed border-divider rounded-xl transition hover:border-blue-400">
                         <label class="font-bold text-[10px] text-primary block mb-2 uppercase">Foto Dokumentasi 1 (4:3):</label>
-                        <input type="file" name="sppd_foto_1" accept="image/jpeg, image/png, image/jpg" class="block w-full text-xs text-secondary border border-divider rounded-xl cursor-pointer bg-slate-500/5 focus:outline-none file:mr-3 file:py-2 file:px-3 file:border-0 file:text-[10px] file:font-bold file:bg-blue-500/10 file:text-blue-600 hover:file:bg-blue-500/20 transition">
+                        <input type="file" name="sppd_foto_1" accept="image/jpeg,image/png,image/jpg" class="block w-full text-xs text-secondary border border-divider rounded-xl cursor-pointer bg-slate-500/5 focus:outline-none file:mr-3 file:py-2 file:px-3 file:border-0 file:text-[10px] file:font-bold file:bg-blue-500/10 file:text-blue-600 hover:file:bg-blue-500/20 transition">
                         @if(isset($oldData['sppd_foto_1_path'])) <p class="text-[10px] text-green-600 mt-2 font-semibold">✓ Tersimpan</p> @endif
                     </div>
                     <div class="bg-sub-card p-4 border-dashed border-divider rounded-xl transition hover:border-blue-400">
                         <label class="font-bold text-[10px] text-primary block mb-2 uppercase">Foto Dokumentasi 2 (4:3):</label>
-                        <input type="file" name="sppd_foto_2" accept="image/jpeg, image/png, image/jpg" class="block w-full text-xs text-secondary border border-divider rounded-xl cursor-pointer bg-slate-500/5 focus:outline-none file:mr-3 file:py-2 file:px-3 file:border-0 file:text-[10px] file:font-bold file:bg-blue-500/10 file:text-blue-600 hover:file:bg-blue-500/20 transition">
+                        <input type="file" name="sppd_foto_2" accept="image/jpeg,image/png,image/jpg" class="block w-full text-xs text-secondary border border-divider rounded-xl cursor-pointer bg-slate-500/5 focus:outline-none file:mr-3 file:py-2 file:px-3 file:border-0 file:text-[10px] file:font-bold file:bg-blue-500/10 file:text-blue-600 hover:file:bg-blue-500/20 transition">
                         @if(isset($oldData['sppd_foto_2_path'])) <p class="text-[10px] text-green-600 mt-2 font-semibold">✓ Tersimpan</p> @endif
                     </div>
                 </div>
@@ -576,7 +576,7 @@
         </div>
 
         <!-- Body Modal (Scrollable Preview Paper) -->
-        <div id="preview-content-container" style="flex: 1 1 auto; overflow-y: auto; padding: 24px; background-color: #1e293b;">
+        <div id="preview-content-container" class="h-[55vh] min-h-[420px] overflow-auto" style="flex: 1 1 auto; overflow-y: auto; padding: 24px; background-color: #1e293b;">
             <!-- Konten pratinjau dimasukkan via AJAX -->
         </div>
 
@@ -857,6 +857,104 @@
         });
     }
 
+    /**
+     * Kompresi gambar otomatis di sisi frontend (HTML5 Canvas, max lebar 1280px, format JPEG kualitas 0.8)
+     */
+    function compressImageFile(file, maxWidth = 1280, quality = 0.8) {
+        if (!file || !file.type || !file.type.startsWith('image/')) {
+            return Promise.resolve(file);
+        }
+
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        if (blob && blob.size < file.size) {
+                            const newFileName = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+                            const compressedFile = new File([blob], newFileName, {
+                                type: 'image/jpeg',
+                                lastModified: Date.now()
+                            });
+                            resolve(compressedFile);
+                        } else {
+                            resolve(file);
+                        }
+                    }, 'image/jpeg', quality);
+                };
+                img.onerror = function() {
+                    resolve(file);
+                };
+                img.src = e.target.result;
+            };
+            reader.onerror = function() {
+                resolve(file);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    /**
+     * Memeriksa apakah terdapat file berekstensi .heic atau .heif pada form
+     */
+    function findHeicFile(formEl) {
+        if (!formEl) return null;
+        const fileInputs = formEl.querySelectorAll('input[type="file"]');
+        for (const input of fileInputs) {
+            if (input.files && input.files.length > 0) {
+                for (let i = 0; i < input.files.length; i++) {
+                    const file = input.files[i];
+                    const fileName = (file.name || '').toLowerCase();
+                    const fileType = (file.type || '').toLowerCase();
+                    if (fileName.endsWith('.heic') || fileName.endsWith('.heif') || fileType === 'image/heic' || fileType === 'image/heif') {
+                        return file.name;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    // Kompresi otomatis setiap kali ada file gambar dipilih pada input file mana saja
+    document.addEventListener('change', async function(e) {
+        if (e.target && e.target.type === 'file' && e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            const name = (file.name || '').toLowerCase();
+            const type = (file.type || '').toLowerCase();
+
+            // Peringatan jika terdeteksi file HEIC / HEIF
+            if (name.endsWith('.heic') || name.endsWith('.heif') || type === 'image/heic' || type === 'image/heif') {
+                alert('Format foto HEIC/HEIF tidak didukung:\nFile "' + file.name + '" berformat .HEIC/.HEIF dari perangkat Apple.\n\nSilakan pilih foto dengan format JPG/JPEG/PNG atau ubah pengaturan kamera iPhone (Settings > Camera > Formats > Most Compatible).');
+                e.target.value = '';
+                return;
+            }
+
+            if (file && file.type && file.type.startsWith('image/')) {
+                const compressed = await compressImageFile(file, 1280, 0.8);
+                try {
+                    const dt = new DataTransfer();
+                    dt.items.add(compressed);
+                    e.target.files = dt.files;
+                } catch (err) {}
+            }
+        }
+    });
+
     document.addEventListener("DOMContentLoaded", function() {
         aturForm();
         aturJumlahPetugas();
@@ -868,7 +966,7 @@
 
         const btnGeneratePreview = document.getElementById('btn-generate-preview');
         if (btnGeneratePreview && form) {
-            btnGeneratePreview.addEventListener('click', function(e) {
+            btnGeneratePreview.addEventListener('click', async function(e) {
                 e.preventDefault();
 
                 if (!form.checkValidity()) {
@@ -876,14 +974,40 @@
                     return;
                 }
 
-                if (overlay && loadingTitle) {
-                    loadingTitle.innerText = "Sedang Merangkum AI & Men-generate Pratinjau Dokumen...";
-                    overlay.style.display = 'flex';
-                    document.body.style.overflow = 'hidden';
+                // Pengecekan file HEIC/HEIF sebelum FormData dikirim
+                const heicFile = findHeicFile(form);
+                if (heicFile) {
+                    alert('Gagal memproses dokumen:\nTerdeteksi file foto dengan format HEIC/HEIF ("' + heicFile + '").\n\nFormat ini tidak didukung dan dapat menyebabkan data form kosong di server. Silakan ganti foto tersebut dengan format JPG, JPEG, atau PNG.');
+                    return;
                 }
 
+                // 1. Kompresi gambar otomatis sebelum file dimasukkan ke FormData
+                const fileInputs = form.querySelectorAll('input[type="file"]');
+                const compressedMap = new Map();
+                for (const input of fileInputs) {
+                    if (input.files && input.files.length > 0) {
+                        const file = input.files[0];
+                        if (file && file.type && file.type.startsWith('image/')) {
+                            const compressed = await compressImageFile(file, 1280, 0.8);
+                            compressedMap.set(input.name, compressed);
+                            try {
+                                const dt = new DataTransfer();
+                                dt.items.add(compressed);
+                                input.files = dt.files;
+                            } catch (err) {}
+                        }
+                    }
+                }
+
+                // 2. PASTI DIAMBIL SEBELUM TOMBOL / INPUT DI-DISABLE
                 const previewUrl = "{{ route('report.generate', [], false) }}";
                 const formData = new FormData(form);
+
+                // Masukkan file terkompresi ke formData
+                compressedMap.forEach((compressedFile, inputName) => {
+                    formData.set(inputName, compressedFile);
+                });
+
                 formData.set('action', 'preview');
 
                 if (formData.get('pakai_ttd') === 'tidak') {
@@ -896,6 +1020,14 @@
                 const currentId = currentPreviewReportId || document.getElementById('report_id_field')?.value;
                 if (currentId) {
                     formData.set('report_id', currentId);
+                }
+
+                // 3. BARU DISABLE TOMBOL & TAMPILKAN OVERLAY SETELAH FORMDATA BERHASIL DIAMBIL
+                btnGeneratePreview.disabled = true;
+                if (overlay && loadingTitle) {
+                    loadingTitle.innerText = "Sedang Merangkum AI & Men-generate Pratinjau Dokumen...";
+                    overlay.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
                 }
 
                 fetch(previewUrl, {
@@ -933,6 +1065,7 @@
                     return data;
                 })
                 .then(data => {
+                    btnGeneratePreview.disabled = false;
                     if (overlay) overlay.style.display = 'none';
 
                     if (data.success) {
@@ -972,6 +1105,7 @@
                 })
                 .catch(err => {
                     console.error('Error generate preview:', err);
+                    btnGeneratePreview.disabled = false;
                     if (overlay) overlay.style.display = 'none';
                     document.body.style.overflow = '';
                     alert('Gagal memproses dokumen:\n' + (err.message || 'Terjadi kesalahan sistem.'));
@@ -992,22 +1126,38 @@
             const submitBtns = form.querySelectorAll('button[type="submit"]');
 
             submitBtns.forEach(btn => {
-                btn.addEventListener('click', function(e) {
+                btn.addEventListener('click', async function(e) {
                     if (form.checkValidity()) {
                         e.preventDefault(); 
 
                         if (isSubmitting) return;
                         isSubmitting = true;
 
-                        const jenis = document.getElementById("pilih_jenis")?.value || '';
-                        if (jenis === 'Laporan Harian') {
-                            loadingTitle.innerText = "Sedang Merangkum AI & Menyimpan Laporan Harian...";
-                        } else if (this.value === 'approved') {
-                            loadingTitle.innerText = "Sedang Merangkum AI & Menyetujui Laporan...";
-                        } else if (this.value === 'pending') {
-                            loadingTitle.innerText = "Sedang Merangkum AI & Mengajukan ke Admin Bidang...";
-                        } else {
-                            loadingTitle.innerText = "Sedang Merangkum AI & Menyimpan Draf...";
+                        const actionName = this.name;
+                        const actionValue = this.value;
+
+                        // Pengecekan file HEIC/HEIF sebelum form dikirim
+                        const heicFile = findHeicFile(form);
+                        if (heicFile) {
+                            alert('Gagal mengirim laporan:\nTerdeteksi file foto dengan format HEIC/HEIF ("' + heicFile + '").\n\nFormat ini tidak didukung dan dapat menyebabkan data form kosong di server. Silakan ganti foto tersebut dengan format JPG, JPEG, atau PNG.');
+                            isSubmitting = false;
+                            return;
+                        }
+
+                        // 1. Kompresi gambar pada input file sebelum form dikirim
+                        const fileInputs = form.querySelectorAll('input[type="file"]');
+                        for (const input of fileInputs) {
+                            if (input.files && input.files.length > 0) {
+                                const file = input.files[0];
+                                if (file && file.type && file.type.startsWith('image/')) {
+                                    const compressed = await compressImageFile(file, 1280, 0.8);
+                                    try {
+                                        const dt = new DataTransfer();
+                                        dt.items.add(compressed);
+                                        input.files = dt.files;
+                                    } catch (err) {}
+                                }
+                            }
                         }
 
                         const pakaiTtdEl = document.getElementById('pakai_ttd');
@@ -1024,16 +1174,30 @@
 
                         const hiddenInput = document.createElement('input');
                         hiddenInput.type = 'hidden';
-                        hiddenInput.name = this.name;
-                        hiddenInput.value = this.value;
+                        hiddenInput.name = actionName;
+                        hiddenInput.value = actionValue;
                         form.appendChild(hiddenInput);
+
+                        const jenis = document.getElementById("pilih_jenis")?.value || '';
+                        if (jenis === 'Laporan Harian') {
+                            loadingTitle.innerText = "Sedang Merangkum AI & Menyimpan Laporan Harian...";
+                        } else if (actionValue === 'approved') {
+                            loadingTitle.innerText = "Sedang Merangkum AI & Menyetujui Laporan...";
+                        } else if (actionValue === 'pending') {
+                            loadingTitle.innerText = "Sedang Merangkum AI & Mengajukan ke Admin Bidang...";
+                        } else {
+                            loadingTitle.innerText = "Sedang Merangkum AI & Menyimpan Draf...";
+                        }
 
                         overlay.style.display = 'flex';
                         document.body.style.overflow = 'hidden';
 
+                        // Disable tombol HANYA setelah input & data siap dikirim
+                        submitBtns.forEach(b => b.disabled = true);
+
                         setTimeout(() => {
                             form.submit();
-                        }, 150);
+                        }, 50);
                     }
                 });
             });

@@ -725,10 +725,96 @@ class ReportController extends Controller
     }
 
     /**
+     * Memeriksa apakah payload request kosong (misal akibat batas post_max_size terlampaui)
+     * atau seluruh input kegiatan kosong.
+     */
+    private function isPayloadOrKegiatanEmpty(Request $request): bool
+    {
+        $all = $request->except(['_token']);
+        if (empty($all) || count($all) === 0 || empty($request->input('jenis_dokumen'))) {
+            return true;
+        }
+
+        $jenis = $request->input('jenis_dokumen');
+
+        if ($jenis === 'Laporan Harian') {
+            $kegiatans = $request->input('kegiatan', []);
+            if (!is_array($kegiatans) || empty($kegiatans)) {
+                return true;
+            }
+            $hasIsi = false;
+            foreach ($kegiatans as $keg) {
+                $j = trim($keg['judul'] ?? '');
+                $h = trim($keg['hasil_kegiatan'] ?? $keg['hasil'] ?? $keg['uraian'] ?? '');
+                if ($j !== '' || $h !== '') {
+                    $hasIsi = true;
+                    break;
+                }
+            }
+            if (!$hasIsi) {
+                return true;
+            }
+        } elseif ($jenis === 'Laporan Mingguan') {
+            $mingguan = $request->input('mingguan', []);
+            if (!is_array($mingguan) || empty($mingguan)) {
+                return true;
+            }
+            $hasIsi = false;
+            foreach ($mingguan as $hari) {
+                $kegs = $hari['kegiatan'] ?? [];
+                if (is_array($kegs)) {
+                    foreach ($kegs as $keg) {
+                        $u = trim($keg['uraian'] ?? $keg['judul'] ?? '');
+                        $o = trim($keg['output'] ?? $keg['hasil'] ?? '');
+                        if ($u !== '' || $o !== '') {
+                            $hasIsi = true;
+                            break 2;
+                        }
+                    }
+                }
+            }
+            if (!$hasIsi) {
+                return true;
+            }
+        } elseif ($jenis === 'Notulensi Rapat') {
+            $judul = trim($request->input('notulen_judul', ''));
+            $hasil = trim($request->input('notulen_hasil', ''));
+            $agenda = trim($request->input('notulen_agenda', ''));
+            $pembahasan = trim($request->input('notulen_pembahasan', ''));
+            $judulUmum = trim($request->input('judul', ''));
+            if ($judul === '' && $hasil === '' && $agenda === '' && $pembahasan === '' && $judulUmum === '') {
+                return true;
+            }
+        } elseif ($jenis === 'Laporan Perjalanan Dinas') {
+            $maksud = trim($request->input('sppd_maksud', ''));
+            $hasil = trim($request->input('sppd_hasil', ''));
+            $tujuan = trim($request->input('sppd_tujuan', ''));
+            $judulUmum = trim($request->input('judul', ''));
+            if ($maksud === '' && $hasil === '' && $tujuan === '' && $judulUmum === '') {
+                return true;
+            }
+        } else {
+            if (trim($request->input('judul', '')) === '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Generate Dokumen PHPWord & Simpan Lokal
      */
     public function generate(Request $request) 
     {
+        // Pengecekan wajib di awal fungsi: jika input kegiatan kosong atau request()->all() kosong
+        if ($this->isPayloadOrKegiatanEmpty($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data form kosong atau ukuran foto melebihi batas server',
+            ], 422);
+        }
+
         try {
             return $this->doGenerate($request);
         } catch (\Throwable $e) {
@@ -748,6 +834,14 @@ class ReportController extends Controller
 
     private function doGenerate(Request $request) 
     {
+        // Pengecekan wajib di awal fungsi: cegah penyimpanan baris draf kosong ke database
+        if ($this->isPayloadOrKegiatanEmpty($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data form kosong atau ukuran foto melebihi batas server',
+            ], 422);
+        }
+
         // Inisialisasi awal variabel nama_file & judul_db untuk mencegah bug Undefined variable
         $nama_file = null;
         $judul_db = trim($request->input('judul', '')) !== '' 
