@@ -16,13 +16,7 @@ Route::get('/', function () {
 });
 
 // ==========================================
-// 2. GOOGLE SSO (Single Sign-On)
-// ==========================================
-Route::get('/auth/google', [AuthController::class, 'redirectToGoogle'])->name('auth.google');
-Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
-
-// ==========================================
-// 3. GUEST ROUTES (Hanya untuk yang belum login)
+// 2. GUEST ROUTES (Hanya untuk yang belum login)
 // ==========================================
 Route::middleware(['guest'])->group(function () {
     // Login
@@ -31,7 +25,7 @@ Route::middleware(['guest'])->group(function () {
 });
 
 // ==========================================
-// 4. AUTH ROUTES DASAR (Logout & Lengkapi Bidang)
+// 3. AUTH ROUTES DASAR (Logout & Lengkapi Bidang)
 // ==========================================
 Route::middleware(['auth'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -53,7 +47,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // ==========================================
-// 5. PROTECTED ROUTES PEGAWAI & LAPORAN UMUM
+// 4. PROTECTED ROUTES PEGAWAI & LAPORAN UMUM
 // ==========================================
 Route::middleware(['auth', 'cek.bidang'])->group(function () {
     
@@ -87,7 +81,7 @@ Route::middleware(['auth', 'cek.bidang'])->group(function () {
 });
 
 // ==========================================
-// 6. ADMIN ROUTES (Dashboard, Kelola User, Arsip)
+// 5. ADMIN ROUTES (Dashboard, Kelola User, Arsip)
 // ==========================================
 Route::middleware(['auth', 'cek.bidang', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     

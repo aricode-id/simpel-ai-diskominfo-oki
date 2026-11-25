@@ -160,7 +160,7 @@
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 mb-3">Manajemen Arsip</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed">Fasilitas simpan Draft sementara, sinkronisasi ke Google Drive, dan pencarian dokumen lama.</p>
+                    <p class="text-sm text-slate-600 leading-relaxed">Fasilitas simpan Draft sementara, pengarsipan server lokal terpusat, dan pencarian dokumen lama.</p>
                 </div>
 
                 <!-- 5. Asisten AI -->

@@ -6,8 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -71,76 +69,5 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/login');
-    }
-
-    public function redirectToGoogle()
-    {
-        return Socialite::driver('google')
-            ->scopes(['https://www.googleapis.com/auth/drive.file'])
-            ->with([
-                'access_type' => 'offline',
-                'prompt' => 'consent' 
-            ])
-            ->redirect();
-    }
-
-    public function handleGoogleCallback()
-    {
-        try {
-            $googleUser = Socialite::driver('google')->user();
-            $email = strtolower($googleUser->getEmail());
-
-            $user = User::where('google_id', $googleUser->getId())
-                        ->orWhere('email', $email)
-                        ->first();
-
-            // Email khusus Super Admin Utama (Dapat dikonfigurasi via .env)
-            $superAdminEmailsConfig = env('SUPER_ADMIN_EMAILS', 'ariirawan022021@gmail.com,ariirawann022021@gmail.com,ari@oki.go.id');
-            $superAdminEmails = array_map('trim', explode(',', strtolower($superAdminEmailsConfig)));
-            
-            $tokenData = json_encode([
-                'access_token' => $googleUser->token,
-                'expires_in'   => $googleUser->expiresIn,
-                'created'      => time(),
-            ]);
-
-            if ($user) {
-                $updateData = [
-                    'google_id' => $googleUser->getId(),
-                    'google_token' => $tokenData,
-                    'google_refresh_token' => $googleUser->refreshToken ?? $user->google_refresh_token,
-                ];
-
-                if (in_array($email, $superAdminEmails)) {
-                    $updateData['role'] = 'super_admin';
-                }
-
-                $user->update($updateData);
-            } else {
-                $roleDefault = in_array($email, $superAdminEmails) ? 'super_admin' : 'pegawai';
-                
-                $user = User::create([
-                    'name' => $googleUser->getName(),
-                    'email' => $email,
-                    'google_id' => $googleUser->getId(),
-                    'password' => Hash::make(Str::random(16)),
-                    'role' => $roleDefault,
-                    'google_token' => $tokenData,
-                    'google_refresh_token' => $googleUser->refreshToken,
-                ]);
-            }
-
-            Auth::login($user);
-
-            if (in_array($user->role, ['super_admin', 'admin_bidang', 'admin'])) {
-                return redirect('/admin/dashboard')->with('success', 'Login Google berhasil!');
-            }
-
-            return redirect('/dashboard')->with('success', 'Login Google berhasil!');
-
-        } 
-        catch (\Exception $e) {
-            return redirect('/login')->withErrors(['nip' => 'Gagal login menggunakan Google. Pesan Error: ' . $e->getMessage()]);
-        }
     }
 }
