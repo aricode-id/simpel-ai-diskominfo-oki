@@ -231,7 +231,7 @@ class ReportController extends Controller
             'total_rejected' => $totalRejectedBidang,
         ];
 
-        return view(view()->exists('admin.monitoring') ? 'admin.monitoring' : 'kabid.monitoring', compact(
+        return view('admin.monitoring', compact(
             'monitoringData',
             'summary',
             'selectedBidang',

@@ -50,35 +50,4 @@ class AdminController extends Controller
             'total_pending', 'total_approved', 'reports_terbaru', 'sortOption'
         ));
     }
-
-    // Proxy ke UserController untuk backward compatibility
-    public function indexUsers(Request $request)
-    {
-        return app(UserController::class)->index($request);
-    }
-
-    public function createUsers()
-    {
-        return app(UserController::class)->create();
-    }
-
-    public function storeUsers(Request $request)
-    {
-        return app(UserController::class)->store($request);
-    }
-
-    public function edit($id)
-    {
-        return app(UserController::class)->edit($id);
-    }
-
-    public function update(Request $request, $id)
-    {
-        return app(UserController::class)->update($request, $id);
-    }
-
-    public function destroyUsers(User $user)
-    {
-        return app(UserController::class)->destroy($user);
-    }
 }

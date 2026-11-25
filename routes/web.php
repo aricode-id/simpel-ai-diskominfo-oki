@@ -28,14 +28,6 @@ Route::middleware(['guest'])->group(function () {
     // Login
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
-
-    // Nonaktifkan Registrasi & Reset Password Publik (Dialihkan ke Login)
-    Route::get('/register', fn() => redirect()->route('login'))->name('register');
-    Route::post('/register', fn() => redirect()->route('login'));
-    Route::get('/forgot-password', fn() => redirect()->route('login'))->name('password.request');
-    Route::post('/forgot-password', fn() => redirect()->route('login'))->name('password.email');
-    Route::get('/reset-password/{token}', fn() => redirect()->route('login'))->name('password.reset');
-    Route::post('/reset-password', fn() => redirect()->route('login'))->name('password.update');
 });
 
 // ==========================================

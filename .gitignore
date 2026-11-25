@@ -67,6 +67,7 @@ config/*.json
 # CATATAN DRAF PRIBADI (INTERNAL PENYUSUNAN LAPORAN)
 # ==============================================================================
 BAHAN_LAPORAN.md
+bahan_laporan.md
 BAHAN_DIAGRAM.md
 
 # ==============================================================================
